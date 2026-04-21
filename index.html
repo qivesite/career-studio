@@ -1,12 +1,14 @@
+<!-- index.html — финальная версия с пояснениями -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Guitar Hero Chart Studio — Главная</title>
+    <title>Guitar Hero Chart Studio</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
+        /* ... стили как в предыдущей версии ... */
         * { transition: all 0.2s ease; }
         body {
             background: #0a0c10;
@@ -136,13 +138,21 @@
     <footer><i class="bi bi-music-note-beamed"></i> Chart Studio – create, manage, play. | Use the buttons above to start your journey.</footer>
 
     <script>
-        // Список доступных чартов — укажите точные имена ваших JSON-файлов в папке charts/
+        // ============================================================
+        // СПИСОК ДОСТУПНЫХ КАМПАНИЙ
+        // Добавляйте новые чарты в этот массив.
+        // Каждый объект должен содержать:
+        //   name        - название кампании
+        //   coverUrl    - ссылка на обложку (можно использовать локальный путь)
+        //   instrument  - основной инструмент
+        //   jsonPath    - путь к JSON-файлу кампании (относительно корня сайта)
+        // ============================================================
         const availableCharts = [
             {
                 name: "Guitar Hero: World Tour",
                 coverUrl: "https://static.wikia.nocookie.net/ghwtde/images/c/c6/PhiPsiKappa.png/revision/latest/scale-to-width-down/1200?cb=20241109183516",
                 instrument: "Guitar (5-fret)",
-                jsonPath: "charts/world_tour.json"
+                jsonPath: "charts/Guitar_hero__World_Tour.json"
             },
             {
                 name: "Legends of Rock",
@@ -150,9 +160,15 @@
                 instrument: "Guitar (5-fret)",
                 jsonPath: "charts/Legends_of_Rock.json"
             }
+            // Добавьте сюда свои кампании, например:
+            // {
+            //     name: "My Custom Campaign",
+            //     coverUrl: "images/my_cover.jpg",
+            //     instrument: "Drums (4-lane)",
+            //     jsonPath: "charts/my_campaign.json"
+            // }
         ];
 
-        // Функция для запуска кампании: сохраняем путь в localStorage и переходим на play.html
         function playCampaign(jsonPath) {
             localStorage.setItem('autoLoadChartPath', jsonPath);
             window.location.href = 'play.html';
