@@ -1,10 +1,10 @@
-<!-- play.html (обновлён: поддержка автозагрузки чарта из URL параметра) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Campaign Tracker — Guitar Hero Progress</title>
+    <!-- Bootstrap 5 Dark Theme + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -31,6 +31,7 @@
             backdrop-filter: blur(3px);
             z-index: -1;
         }
+        /* Sticky info panel (left side) */
         .info-panel {
             position: sticky;
             top: 20px;
@@ -41,6 +42,7 @@
             padding: 1.2rem;
             margin-bottom: 1.5rem;
             color: #f0f0f0;
+            transition: all 0.3s;
         }
         .total-stars-card {
             background: linear-gradient(135deg, #2c2e3a 0%, #1e1f2c 100%);
@@ -65,10 +67,13 @@
             margin-bottom: 1.8rem;
             overflow: hidden;
             position: relative;
+            transition: 0.2s;
             text-align: center;
         }
         .block-card.locked {
+            opacity: 1;
             pointer-events: none;
+            position: relative;
         }
         .block-card.unlocked {
             pointer-events: auto;
@@ -95,6 +100,7 @@
         .lock-overlay i {
             font-size: 3.5rem;
             color: #f39c12;
+            text-shadow: 0 0 5px black;
         }
         .lock-overlay strong, .lock-overlay small {
             background: rgba(0, 0, 0, 0.8);
@@ -108,15 +114,23 @@
             background: rgba(15, 17, 26, 0.7);
             border-radius: 1rem;
             padding: 0.7rem 1rem;
-            margin: 0 12px 0.7rem 12px;
+            margin-bottom: 0.7rem;
+            margin-left: 12px;
+            margin-right: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
             border: 1px solid #2c2f3c;
+            transition: 0.1s;
+            text-align: left;
         }
         .track-item:last-child {
             margin-bottom: 1rem;
+        }
+        .track-item:hover {
+            background: #262a3a;
+            border-color: #f39c12;
         }
         .track-info {
             display: flex;
@@ -128,7 +142,6 @@
             font-size: 1.1rem;
             letter-spacing: 2px;
             color: #ffd966;
-            white-space: nowrap;
         }
         .stars-input {
             width: 90px;
@@ -138,6 +151,10 @@
             border-radius: 30px;
             text-align: center;
             font-weight: bold;
+        }
+        .stars-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(243,156,18,0.5);
         }
         .block-cover-lg {
             width: 180px;
@@ -161,6 +178,10 @@
             border: none;
             color: #1e2a1f;
             font-weight: bold;
+        }
+        .btn-soundpack:hover {
+            background: #27ae60;
+            transform: scale(1.02);
         }
         @keyframes glow {
             0% { box-shadow: 0 0 0 0 rgba(243,156,18,0.7); }
@@ -189,16 +210,17 @@
             animation: glow 0.8s ease;
         }
         .footer {
-            margin-top: 2rem;
+            font-size: 0.75rem;
             text-align: center;
+            margin-top: 2rem;
             padding: 1rem;
             color: #a0a3b8;
-            font-size: 0.75rem;
         }
         @media (max-width: 768px) {
             .info-panel {
                 position: relative;
                 top: 0;
+                margin-bottom: 1rem;
             }
             .total-stars-card {
                 position: sticky;
@@ -213,16 +235,25 @@
                 margin-left: 6px;
                 margin-right: 6px;
             }
-            .difficulty-circles {
-                font-size: 0.9rem;
-                letter-spacing: 1px;
-            }
         }
-        .text-light-50 { color: #dddddd !important; }
-        .block-name-center { text-align: center; margin-top: 10px; margin-bottom: 5px; }
+        .text-light-50 {
+            color: #dddddd !important;
+        }
+        .card-title, h4, h3, p, label {
+            color: #f0f0f0;
+        }
+        .alert-dark {
+            background: #2c2e3a;
+            color: #ccc;
+        }
+        .block-name-center {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
-<body class="container py-4">
+<body class="container py-4" id="appBody">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <h1 class="display-6 fw-bold text-white"><i class="bi bi-trophy-fill text-warning me-2"></i>Campaign Tracker</h1>
         <div>
@@ -234,11 +265,14 @@
         </div>
     </div>
 
+    <!-- Main grid: left side info panel, right side blocks -->
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="info-panel" id="infoPanel">
-                <div id="campaignInfoContent"><p class="text-muted">No campaign loaded</p></div>
-                <div class="total-stars-card">
+                <div id="campaignInfoContent">
+                    <p class="text-muted">No campaign loaded</p>
+                </div>
+                <div class="total-stars-card" id="totalStarsCard">
                     <i class="bi bi-star-fill text-warning fs-3"></i>
                     <div class="total-stars-number" id="totalStarsValue">0</div>
                     <div>Total Stars Earned</div>
@@ -247,213 +281,388 @@
             </div>
         </div>
         <div class="col-lg-8">
-            <div id="blocksGrid" class="row g-3"><div class="col-12 text-center text-muted">Load a campaign JSON to start.</div></div>
+            <div id="blocksGrid" class="row g-3">
+                <div class="col-12 text-center text-muted">Load a campaign JSON to start tracking your stars.</div>
+            </div>
         </div>
     </div>
     <div class="footer">
         <button class="btn btn-outline-danger btn-sm" id="resetStarsBtn"><i class="bi bi-trash"></i> Reset all stars</button>
-        <span class="ms-3"><i class="bi bi-music-note-beamed"></i> Progress auto-saved locally.</span>
+        <span class="ms-3"><i class="bi bi-music-note-beamed"></i> Earn stars by playing songs (any number), unlock new stages! Progress auto-saved.</span>
     </div>
 
     <script>
-        let campaign = null, userStars = {}, totalStars = 0;
-        function circlesDisplay(level, max=6) { return '●'.repeat(level) + '○'.repeat(max-level); }
-        function escapeHtml(s) { return s ? s.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : ''; }
+        let campaign = null;           
+        let userStars = {};            
+        let totalStars = 0;
 
-        function recalcTotalStars() {
-            totalStars = Object.values(userStars).reduce((s,v)=> s + (parseFloat(v)||0), 0);
-            document.getElementById('totalStarsValue').innerText = Math.floor(totalStars);
-            return totalStars;
+        function circlesDisplay(level, max = 6) {
+            let filled = '●'.repeat(level);
+            let empty = '○'.repeat(max - level);
+            return filled + empty;
         }
 
-        function checkAllTracksCompleted() {
-            if(!campaign?.blocks) return false;
-            const allTracks = campaign.blocks.flatMap(b=>b.tracks||[]);
-            if(!allTracks.length) return false;
-            return allTracks.every(t=> parseFloat(userStars[t.id]||0) > 0);
-        }
-
-        function updateCongrats() {
-            const div = document.getElementById('congratsMessage');
-            if(campaign && checkAllTracksCompleted()) div.innerHTML = `<div class="congrats-banner"><i class="bi bi-trophy-fill"></i> CONGRATULATIONS! You've completed the entire campaign! 🎸🔥</div>`;
-            else div.innerHTML = '';
-        }
-
-        function showToast(msg, type='success') {
-            const toast = document.createElement('div');
-            toast.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 shadow-lg`;
-            toast.style.zIndex = 9999;
-            toast.style.background = type==='success'?'#2ecc71':'#3498db';
-            toast.style.color = 'white';
-            toast.innerHTML = `<i class="bi bi-gift-fill me-2"></i> ${msg}`;
-            document.body.appendChild(toast);
-            setTimeout(()=>toast.remove(),2500);
-        }
-
-        function renderUI() {
-            if(!campaign?.blocks) {
-                document.getElementById('blocksGrid').innerHTML = '<div class="col-12 text-center text-muted">No campaign loaded. Load a JSON file.</div>';
-                document.getElementById('campaignInfoContent').innerHTML = '<p class="text-muted">No campaign loaded</p>';
-                document.getElementById('totalStarsValue').innerText = '0';
-                updateCongrats();
-                return;
-            }
-            // info panel
-            let infoHtml = '';
-            if(campaign.coverUrl) infoHtml += `<img src="${escapeHtml(campaign.coverUrl)}" class="campaign-cover-dynamic" onerror="this.src='https://placehold.co/600x300/2c2e3a/9b59b6?text=no+cover'">`;
-            infoHtml += `<h3 class="text-warning">${escapeHtml(campaign.name||'Untitled')}</h3>`;
-            if(campaign.description) infoHtml += `<p class="small">${escapeHtml(campaign.description)}</p>`;
-            if(campaign.instrument) infoHtml += `<p><i class="bi bi-guitar-fill"></i> <strong>Instrument:</strong> ${escapeHtml(campaign.instrument)}</p>`;
-            if(campaign.soundpackLink) infoHtml += `<a href="${escapeHtml(campaign.soundpackLink)}" target="_blank" class="btn btn-soundpack btn-sm w-100 mt-2"><i class="bi bi-download"></i> Download Soundpack</a>`;
-            document.getElementById('campaignInfoContent').innerHTML = infoHtml;
-            if(campaign.backgroundImageUrl) document.body.style.backgroundImage = `url('${escapeHtml(campaign.backgroundImageUrl)}')`;
-            else document.body.style.backgroundImage = "url('https://placehold.co/1920x1080/1a1e2a/6c5ce7?text=GUITAR+HERO+BACKGROUND&font=montserrat')";
-
-            // blocks
-            const grid = document.getElementById('blocksGrid');
-            grid.innerHTML = '';
-            campaign.blocks.forEach(block => {
-                const isUnlocked = totalStars >= block.unlockCost;
-                const lockOverlay = !isUnlocked ? `<div class="lock-overlay"><i class="bi bi-question-circle-fill"></i><strong>🔒 LOCKED</strong><small>Need ${block.unlockCost - Math.floor(totalStars)} more stars</small></div>` : '';
-                const coverImg = block.coverUrl ? `<img src="${escapeHtml(block.coverUrl)}" class="block-cover-lg" onerror="this.src='https://placehold.co/180x180/2c2e3a/9b59b6?text=?'">` : `<div class="block-cover-lg bg-secondary d-flex align-items-center justify-content-center"><i class="bi bi-collection fs-1"></i></div>`;
-                let tracksHtml = '';
-                if(block.tracks?.length) {
-                    block.tracks.forEach(track => {
-                        const current = userStars[track.id] || 0;
-                        tracksHtml += `
-                            <div class="track-item">
-                                <div class="track-info">
-                                    <i class="bi bi-music-note text-info"></i>
-                                    <strong>${escapeHtml(track.name)}</strong>
-                                    <span class="difficulty-circles">${circlesDisplay(track.difficulty,6)}</span>
-                                </div>
-                                <div>
-                                    <input type="number" class="stars-input" data-track-id="${track.id}" value="${current}" step="1" ${!isUnlocked ? 'disabled' : ''}>
-                                    <span class="ms-1">★</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else tracksHtml = `<div class="alert alert-dark text-center small mx-3 mb-3">No songs.</div>`;
-                grid.innerHTML += `
-                    <div class="col-12">
-                        <div class="block-card ${isUnlocked ? 'unlocked' : 'locked'}" data-block-id="${block.id}" style="position:relative;">
-                            ${lockOverlay}
-                            ${coverImg}
-                            <div class="card-body">
-                                <h4 class="block-name-center">${escapeHtml(block.name)}</h4>
-                                <small class="text-warning d-block text-center mb-3"><i class="bi bi-star-fill"></i> Unlock: ${block.unlockCost} stars</small>
-                                <div>${tracksHtml}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            document.querySelectorAll('.stars-input').forEach(inp => inp.addEventListener('change', handleStarChange));
-            updateCongrats();
-        }
-
-        function handleStarChange(e) {
-            const inp = e.target;
-            const trackId = inp.dataset.trackId;
-            let val = parseFloat(inp.value);
-            if(isNaN(val)) val = 0;
-            if(val<0) val=0;
-            inp.value = val;
-            const prevTotal = totalStars;
-            userStars[trackId] = val;
-            recalcTotalStars();
-            if(prevTotal !== totalStars) {
-                const prevUnlocks = campaign.blocks.map(b=> totalStars >= b.unlockCost);
-                renderUI();
-                const newUnlocks = campaign.blocks.map(b=> totalStars >= b.unlockCost);
-                newUnlocks.forEach((unlocked,i)=>{
-                    if(!prevUnlocks[i] && unlocked) showToast(`🎸 ${campaign.blocks[i].name} UNLOCKED!`,'success');
-                });
-            } else renderUI();
-            saveToLocalStorage();
-            const trackDiv = inp.closest('.track-item');
-            if(trackDiv) { trackDiv.classList.add('star-input-changed'); setTimeout(()=>trackDiv.classList.remove('star-input-changed'),300); }
-        }
-
-        function saveToLocalStorage() {
-            if(campaign) localStorage.setItem('campaignTrackerProgress', JSON.stringify({campaign, userStars, totalStars}));
-        }
-        function loadFromLocalStorage() {
-            const raw = localStorage.getItem('campaignTrackerProgress');
-            if(raw) try {
-                const data = JSON.parse(raw);
-                if(data.campaign && data.userStars) { campaign=data.campaign; userStars=data.userStars; totalStars=data.totalStars||0; recalcTotalStars(); renderUI(); return true; }
-            } catch(e) {}
-            return false;
-        }
-
-        function loadCampaignFromJson(json) {
-            campaign = json;
+        function loadCampaign(jsonData) {
+            campaign = jsonData;
             userStars = {};
-            if(campaign?.blocks) campaign.blocks.forEach(b=> b.tracks?.forEach(t=> userStars[t.id]=0));
             totalStars = 0;
+            if (campaign && campaign.blocks) {
+                campaign.blocks.forEach(block => {
+                    if (block.tracks) {
+                        block.tracks.forEach(track => {
+                            userStars[track.id] = 0;
+                        });
+                    }
+                });
+            }
             recalcTotalStars();
             saveToLocalStorage();
             renderUI();
         }
 
-        async function loadChartFromUrlParam() {
-            const params = new URLSearchParams(window.location.search);
-            const chartPath = params.get('chart');
-            if(chartPath) {
-                try {
-                    const response = await fetch(chartPath);
-                    if(response.ok) {
-                        const json = await response.json();
-                        loadCampaignFromJson(json);
-                        showToast(`Campaign "${json.name}" loaded!`,'success');
-                    } else showToast('Failed to load campaign file','warning');
-                } catch(e) { console.warn(e); showToast('Error loading chart','danger'); }
+        function recalcTotalStars() {
+            totalStars = Object.values(userStars).reduce((sum, val) => {
+                let num = parseFloat(val);
+                if (isNaN(num)) num = 0;
+                return sum + num;
+            }, 0);
+            document.getElementById('totalStarsValue').innerText = Math.floor(totalStars);
+            return totalStars;
+        }
+
+        function checkAllTracksCompleted() {
+            if (!campaign || !campaign.blocks) return false;
+            let allTracks = [];
+            campaign.blocks.forEach(block => {
+                if (block.tracks) allTracks.push(...block.tracks);
+            });
+            if (allTracks.length === 0) return false;
+            return allTracks.every(track => {
+                let stars = userStars[track.id];
+                return stars !== undefined && stars !== null && parseFloat(stars) > 0;
+            });
+        }
+
+        function updateCongratsMessage() {
+            const container = document.getElementById('congratsMessage');
+            if (!campaign) {
+                container.innerHTML = '';
+                return;
+            }
+            if (checkAllTracksCompleted()) {
+                container.innerHTML = `<div class="congrats-banner"><i class="bi bi-trophy-fill"></i> CONGRATULATIONS! You've completed the entire campaign! 🎸🔥</div>`;
+            } else {
+                container.innerHTML = '';
             }
         }
 
-        function handleFileUpload(file, isCampaign=true) {
+        function checkAndTriggerUnlockAnimations(prevTotalStars) {
+            if (!campaign || !campaign.blocks) return;
+            const newTotal = totalStars;
+            campaign.blocks.forEach(block => {
+                const wasUnlocked = prevTotalStars >= block.unlockCost;
+                const isUnlocked = newTotal >= block.unlockCost;
+                if (!wasUnlocked && isUnlocked) {
+                    const blockElement = document.querySelector(`.block-card[data-block-id="${block.id}"]`);
+                    if (blockElement) {
+                        blockElement.classList.add('unlock-animation');
+                        setTimeout(() => blockElement.classList.remove('unlock-animation'), 600);
+                        showToast(`🎸 ${block.name} UNLOCKED!`, 'success');
+                    }
+                }
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const toastDiv = document.createElement('div');
+            toastDiv.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 shadow-lg`;
+            toastDiv.style.zIndex = 9999;
+            toastDiv.style.background = type === 'success' ? '#2ecc71' : '#3498db';
+            toastDiv.style.color = 'white';
+            toastDiv.style.fontWeight = 'bold';
+            toastDiv.innerHTML = `<i class="bi bi-gift-fill me-2"></i> ${message}`;
+            document.body.appendChild(toastDiv);
+            setTimeout(() => toastDiv.remove(), 2500);
+        }
+
+        function renderUI() {
+            if (!campaign || !campaign.blocks) {
+                document.getElementById('blocksGrid').innerHTML = '<div class="col-12 text-center text-muted">No campaign loaded. Please load a valid JSON file.</div>';
+                document.getElementById('campaignInfoContent').innerHTML = '<p class="text-muted">No campaign loaded</p>';
+                document.getElementById('totalStarsValue').innerText = '0';
+                updateCongratsMessage();
+                return;
+            }
+
+            renderInfoPanel();
+            const blocksGrid = document.getElementById('blocksGrid');
+            blocksGrid.innerHTML = '';
+            campaign.blocks.forEach(block => {
+                const isUnlocked = totalStars >= block.unlockCost;
+                const cardClass = isUnlocked ? 'unlocked' : 'locked';
+                const lockOverlay = !isUnlocked ? `
+                    <div class="lock-overlay">
+                        <i class="bi bi-question-circle-fill"></i>
+                        <strong>🔒 LOCKED</strong>
+                        <small>Need ${block.unlockCost - Math.floor(totalStars)} more stars</small>
+                    </div>
+                ` : '';
+
+                const coverHtml = block.coverUrl ? `<img src="${escapeHtml(block.coverUrl)}" class="block-cover-lg" alt="cover" onerror="this.src='https://placehold.co/180x180/2c2e3a/9b59b6?text=?'">` : `<div class="block-cover-lg bg-secondary d-flex align-items-center justify-content-center"><i class="bi bi-collection fs-1"></i></div>`;
+
+                let tracksHtml = '';
+                if (block.tracks && block.tracks.length) {
+                    block.tracks.forEach(track => {
+                        const currentStars = userStars[track.id] !== undefined ? userStars[track.id] : 0;
+                        const difficultyCircles = circlesDisplay(track.difficulty, 6);
+                        tracksHtml += `
+                            <div class="track-item" data-track-id="${track.id}">
+                                <div class="track-info">
+                                    <i class="bi bi-music-note text-info"></i>
+                                    <strong>${escapeHtml(track.name)}</strong>
+                                    <span class="difficulty-circles" title="Song difficulty">${difficultyCircles}</span>
+                                </div>
+                                <div>
+                                    <input type="number" class="stars-input" data-track-id="${track.id}" value="${currentStars}" step="1" ${!isUnlocked ? 'disabled' : ''}>
+                                    <span class="ms-1">★</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    tracksHtml = `<div class="alert alert-dark text-center small mx-3 mb-3">No songs in this setlist.</div>`;
+                }
+
+                const blockCard = `
+                    <div class="col-12">
+                        <div class="block-card ${cardClass}" data-block-id="${block.id}" style="position: relative;">
+                            ${lockOverlay}
+                            ${coverHtml}
+                            <div class="card-body">
+                                <h4 class="fw-bold text-light block-name-center">${escapeHtml(block.name)}</h4>
+                                <small class="text-warning d-block text-center mb-3"><i class="bi bi-star-fill"></i> Unlock cost: ${block.unlockCost} stars</small>
+                                <div class="mt-2">
+                                    <h6><i class="bi bi-list-ul"></i> Setlist</h6>
+                                    ${tracksHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                blocksGrid.innerHTML += blockCard;
+            });
+
+            document.querySelectorAll('.stars-input').forEach(input => {
+                input.removeEventListener('change', handleStarChange);
+                input.addEventListener('change', handleStarChange);
+            });
+            updateCongratsMessage();
+        }
+
+        function handleStarChange(e) {
+            const input = e.target;
+            const trackId = input.getAttribute('data-track-id');
+            let val = parseFloat(input.value);
+            if (isNaN(val)) val = 0;
+            if (val < 0) val = 0;
+            input.value = val;
+            const prevTotal = totalStars;
+            userStars[trackId] = val;
+            recalcTotalStars();
+            checkAndTriggerUnlockAnimations(prevTotal);
+            saveToLocalStorage();
+            const trackItem = input.closest('.track-item');
+            if (trackItem) {
+                trackItem.classList.add('star-input-changed');
+                setTimeout(() => trackItem.classList.remove('star-input-changed'), 300);
+            }
+            renderUI();
+        }
+
+        function renderInfoPanel() {
+            const panel = document.getElementById('campaignInfoContent');
+            if (!campaign) {
+                panel.innerHTML = '<p class="text-muted">No campaign loaded</p>';
+                return;
+            }
+            let html = '';
+            if (campaign.coverUrl) {
+                html += `<img src="${escapeHtml(campaign.coverUrl)}" class="campaign-cover-dynamic" alt="cover" onerror="this.src='https://placehold.co/600x300/2c2e3a/9b59b6?text=no+cover'">`;
+            }
+            html += `<h3 class="text-warning">${escapeHtml(campaign.name || 'Untitled Campaign')}</h3>`;
+            if (campaign.description) html += `<p class="small text-light-50">${escapeHtml(campaign.description)}</p>`;
+            if (campaign.instrument) html += `<p><i class="bi bi-guitar-fill"></i> <strong>Instrument:</strong> ${escapeHtml(campaign.instrument)}</p>`;
+            if (campaign.soundpackLink) {
+                html += `<a href="${escapeHtml(campaign.soundpackLink)}" target="_blank" class="btn btn-soundpack btn-sm w-100 mt-2"><i class="bi bi-download"></i> Download Soundpack</a>`;
+            }
+            if (campaign.backgroundImageUrl && campaign.backgroundImageUrl.trim() !== '') {
+                document.body.style.backgroundImage = `url('${escapeHtml(campaign.backgroundImageUrl)}')`;
+            } else {
+                document.body.style.backgroundImage = "url('https://placehold.co/1920x1080/1a1e2a/6c5ce7?text=GUITAR+HERO+BACKGROUND&font=montserrat')";
+            }
+            panel.innerHTML = html;
+        }
+
+        function resetAllStars() {
+            if (!campaign) {
+                showToast('No campaign loaded', 'warning');
+                return;
+            }
+            if (confirm('Are you sure? This will reset all stars earned for every song.')) {
+                for (let trackId in userStars) {
+                    userStars[trackId] = 0;
+                }
+                recalcTotalStars();
+                saveToLocalStorage();
+                renderUI();
+                showToast('All stars have been reset!', 'info');
+            }
+        }
+
+        function saveToLocalStorage() {
+            if (!campaign) return;
+            const saveData = {
+                campaign: campaign,
+                userStars: userStars,
+                totalStars: totalStars,
+                lastUpdated: Date.now()
+            };
+            localStorage.setItem('campaignTrackerProgress', JSON.stringify(saveData));
+        }
+
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem('campaignTrackerProgress');
+            if (!raw) return false;
+            try {
+                const data = JSON.parse(raw);
+                if (data.campaign && data.userStars) {
+                    campaign = data.campaign;
+                    userStars = data.userStars;
+                    totalStars = data.totalStars || 0;
+                    recalcTotalStars();
+                    renderUI();
+                    return true;
+                }
+            } catch(e) {}
+            return false;
+        }
+
+        function handleCampaignUpload(file) {
             const reader = new FileReader();
-            reader.onload = e => {
+            reader.onload = function(e) {
                 try {
                     const json = JSON.parse(e.target.result);
-                    if(isCampaign) loadCampaignFromJson(json);
-                    else {
-                        if(json.userStars && campaign) {
-                            Object.entries(json.userStars).forEach(([id,stars])=>{ if(userStars.hasOwnProperty(id)) userStars[id]=parseFloat(stars)||0; });
-                            recalcTotalStars();
-                            saveToLocalStorage();
-                            renderUI();
-                            showToast('Progress merged!','success');
-                        } else alert('Invalid progress file or no campaign');
+                    if (json && (json.blocks || json.name)) {
+                        if (json.blocks) {
+                            json.blocks.forEach(block => {
+                                if (!block.id) block.id = Date.now() + '-' + Math.random();
+                                if (block.tracks) {
+                                    block.tracks.forEach(track => {
+                                        if (!track.id) track.id = Date.now() + '-' + Math.random();
+                                        if (track.difficulty < 1) track.difficulty = 1;
+                                        if (track.difficulty > 6) track.difficulty = 6;
+                                    });
+                                }
+                            });
+                        }
+                        loadCampaign(json);
+                        showToast('Campaign loaded successfully!', 'success');
+                    } else {
+                        alert('Invalid campaign JSON: missing blocks or name.');
                     }
-                } catch(err) { alert('JSON parse error'); }
+                } catch (err) {
+                    alert('Error parsing JSON: ' + err.message);
+                }
             };
             reader.readAsText(file);
         }
 
-        document.getElementById('loadJsonTracker').addEventListener('change', e=>{ if(e.target.files[0]) handleFileUpload(e.target.files[0], true); e.target.value=''; });
-        document.getElementById('loadProgressFile').addEventListener('change', e=>{ if(e.target.files[0]) handleFileUpload(e.target.files[0], false); e.target.value=''; });
-        document.getElementById('saveProgressBtn').addEventListener('click', ()=>{
-            if(!campaign) return alert('No campaign');
-            const data = { campaignName: campaign.name, userStars, totalStars };
-            const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-            const a = document.createElement('a');
-            a.download = `${campaign.name.replace(/[^a-z0-9]/gi,'_')}_progress.json`;
-            a.href = URL.createObjectURL(blob);
-            a.click();
-            URL.revokeObjectURL(a.href);
-            showToast('Progress saved to file','info');
-        });
-        document.getElementById('resetStarsBtn').addEventListener('click', ()=>{
-            if(!campaign) return;
-            if(confirm('Reset all stars?')) { Object.keys(userStars).forEach(k=>userStars[k]=0); recalcTotalStars(); saveToLocalStorage(); renderUI(); showToast('Stars reset','info'); }
-        });
+        function handleProgressUpload(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.userStars && campaign) {
+                        const newUserStars = { ...userStars };
+                        for (const [trackId, stars] of Object.entries(data.userStars)) {
+                            let exists = false;
+                            if (campaign && campaign.blocks) {
+                                for (const block of campaign.blocks) {
+                                    if (block.tracks && block.tracks.some(t => t.id === trackId)) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (exists) {
+                                newUserStars[trackId] = parseFloat(stars) || 0;
+                            }
+                        }
+                        userStars = newUserStars;
+                        recalcTotalStars();
+                        saveToLocalStorage();
+                        renderUI();
+                        showToast('Progress loaded and merged!', 'success');
+                    } else {
+                        alert('Invalid progress file or no campaign loaded. Please load campaign first.');
+                    }
+                } catch (err) {
+                    alert('Error parsing progress file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
 
-        if(!loadFromLocalStorage()) renderUI();
-        loadChartFromUrlParam();
-        window.addEventListener('beforeunload', ()=> saveToLocalStorage());
+        function exportProgress() {
+            if (!campaign) {
+                alert('No campaign loaded.');
+                return;
+            }
+            const exportData = {
+                campaignName: campaign.name,
+                exportedAt: new Date().toISOString(),
+                userStars: userStars,
+                totalStars: totalStars
+            };
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = (campaign.name ? campaign.name.replace(/[^a-z0-9]/gi, '_') : 'progress') + '_progress.json';
+            a.href = url;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Progress saved to file!', 'info');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+        }
+
+        document.getElementById('loadJsonTracker').addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleCampaignUpload(e.target.files[0]);
+                e.target.value = '';
+            }
+        });
+        document.getElementById('loadProgressFile').addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleProgressUpload(e.target.files[0]);
+                e.target.value = '';
+            }
+        });
+        document.getElementById('saveProgressBtn').addEventListener('click', exportProgress);
+        document.getElementById('resetStarsBtn').addEventListener('click', resetAllStars);
+
+        if (!loadFromLocalStorage()) {
+            campaign = null;
+            renderUI();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (campaign) saveToLocalStorage();
+        });
     </script>
 </body>
 </html>
