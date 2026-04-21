@@ -1,0 +1,46 @@
+{
+  "name": "Legends of Rock",
+  "description": "Master ultimate guitar battles",
+  "coverUrl": "https://placehold.co/800x400/1e2a3a/f39c12?text=GUITAR+HERO+EDITION",
+  "instrument": "Guitar (5-fret)",
+  "soundpackLink": "https://example.com/soundpack_rock.zip",
+  "backgroundImageUrl": "",
+  "blocks": [
+    {
+      "id": "1776796843271-fqq7ies4",
+      "name": "Warmup Stage",
+      "coverUrl": "",
+      "unlockCost": 0,
+      "tracks": [
+        {
+          "id": "1776796843271-f6r3ml94",
+          "name": "Smoke on the Water",
+          "difficulty": 2
+        },
+        {
+          "id": "1776796843271-r0opnmsx",
+          "name": "Seven Nation Army",
+          "difficulty": 3
+        }
+      ]
+    },
+    {
+      "id": "1776796843271-yxqpncnt",
+      "name": "Solo Battle",
+      "coverUrl": "",
+      "unlockCost": 3,
+      "tracks": [
+        {
+          "id": "1776796843271-h15e0b3w",
+          "name": "Through the Fire and Flames",
+          "difficulty": 6
+        },
+        {
+          "id": "1776796843271-trenfxsv",
+          "name": "Free Bird",
+          "difficulty": 5
+        }
+      ]
+    }
+  ]
+}
